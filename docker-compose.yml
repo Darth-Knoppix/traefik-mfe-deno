@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  reverse-proxy:
+    image: traefik:v2.4
+    command: --api.insecure=true --providers.docker
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - traefik.enable=false
+
+  home:
+    restart: always
+    image: denoland/deno:1.11.2
+    command: run --allow-net --allow-read --allow-env /app/server.ts
+    labels:
+      - traefik.http.routers.home.rule=Host(`deno-mfe.localhost`)
+      - traefik.http.services.home.loadbalancer.server.port=8080
+    environment:
+      - APP_NAME=Home
+    volumes:
+      - ./app:/app
+
+  shop:
+    restart: always
+    image: denoland/deno:1.11.2
+    command: run --allow-net --allow-read --allow-env /app/server.ts
+    labels:
+      - traefik.http.routers.shop.rule=Host(`deno-mfe.localhost`) && PathPrefix(`/shop`)
+      - traefik.http.services.shop.loadbalancer.server.port=8080
+    environment:
+      - APP_NAME=Shop
+    volumes:
+      - ./app:/app
+
+  showcase:
+    restart: always
+    image: denoland/deno:1.11.2
+    command: run --allow-net --allow-read --allow-env /app/server.ts
+    labels:
+      - traefik.http.routers.showcase.rule=Host(`deno-mfe.localhost`) && PathPrefix(`/showcase`)
+      - traefik.http.services.showcase.loadbalancer.server.port=8080
+    environment:
+      - APP_NAME=Showcase
+    volumes:
+      - ./app:/app
+    expose:
+      - 8080
